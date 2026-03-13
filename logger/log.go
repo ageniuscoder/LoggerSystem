@@ -107,11 +107,11 @@ func (l *Logger) AddAppender(level string,appender appender.LogAppender){
 	}
 }
 
-func (l *Logger) log(level logmsg.LogLevel,msg string){
+func (l *Logger) log(level logmsg.LogLevel,msg string,fields []logmsg.Field){
 	if level<l.minLevel{
 		return
 	}
-	m:=logmsg.NewLogMsg(level,msg)
+	m:=logmsg.NewLogMsg(level,msg,fields)
 	select{
 	case <-l.done:
 		//ignore silently if shutdown not panic
@@ -123,22 +123,21 @@ func (l *Logger) log(level logmsg.LogLevel,msg string){
 	
 }
 
-func (l *Logger) Debug(con string){
-	l.log(logmsg.DEBUG,con)
+func (l *Logger) Debug(msg string,fields ...logmsg.Field){
+	l.log(logmsg.DEBUG,msg,fields)
 }
 
-func (l *Logger) Info(con string){
-	l.log(logmsg.INFO,con)
+func (l *Logger) Info(msg string, fields ...logmsg.Field) {
+	l.log(logmsg.INFO, msg, fields)
 }
 
-func (l *Logger) Warning(con string){
-	l.log(logmsg.WARNING,con)
+func (l *Logger) Warning(msg string, fields ...logmsg.Field) {
+	l.log(logmsg.WARNING, msg, fields)
 }
 
-func (l *Logger) Error(con string){
-	l.log(logmsg.ERROR,con)
+func (l *Logger) Error(msg string, fields ...logmsg.Field) {
+	l.log(logmsg.ERROR, msg, fields)
 }
-
 func (l *Logger) GetDroppedLogsCnt() int64{
 	return atomic.LoadInt64(&l.droppedCnt)
 }
