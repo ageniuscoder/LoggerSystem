@@ -1,19 +1,14 @@
 package main
 
 import (
-	"logger/config"
 	"logger/logmsg"
+	"logger/start"
 	"sync"
 )
 
 func main() {
-	cfg, err := config.Load("./logger.json")
-	if err != nil {
-		panic(err)
-	}
-
-	system,closers,err:=config.Build(cfg)
-	if err != nil {
+	system,closers,err:=start.Run("./logger.json")
+	if err!=nil{
 		panic(err)
 	}
 
