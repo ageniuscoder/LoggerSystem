@@ -3,6 +3,7 @@ package logmsg
 import (
 	"path/filepath"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -20,20 +21,36 @@ program counter
 file name
 line number
 */
+var msgPool=sync.Pool{
+	New: func() any {
+		return &LogMsg{}
+	},
+}
 
+func getMsgPool() *LogMsg{
+	return msgPool.Get().(*LogMsg)
+}
+
+func PutMsgPool(m *LogMsg){
+	m.Fields=m.Fields[:0]
+	m.Content = ""         
+    m.File    = ""
+    m.Line    = 0
+	msgPool.Put(m)
+}
 func NewLogMsg(level LogLevel,content string, fields []Field) *LogMsg{
-	_,file,line,ok:=runtime.Caller(2)
+	_,file,line,ok:=runtime.Caller(3)
 	if ok{
 		file=filepath.Base(file)
 	}
-	return &LogMsg{
-		Timestamp: time.Now(),
-		Level: level,
-		Content: content,
-		Fields: fields,
-		File: file,
-		Line: line,
-	}
+	m:=getMsgPool()
+	m.Timestamp=time.Now()
+	m.Level=level
+	m.Content=content
+	m.Fields=fields
+	m.File=file
+	m.Line=line
+	return m
 }
 
 func (lm *LogMsg) GetTimestamp() string{

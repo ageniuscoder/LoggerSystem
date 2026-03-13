@@ -1,6 +1,6 @@
 {
   "buffer": 512,
-  "min_level": "warning",
+  "min_level": "info",
   "batch_size": 100,
   "flush_interval": 500,
   "levels": [
@@ -18,9 +18,15 @@
       "level": "info",
       "appenders": [
         {
-          "name": "console-info",
-          "type": "console",
-          "formatter": { "name": "jsonfmt", "type": "json" }
+          "name": "rotating-info",
+          "type": "rotating_file",
+          "path": "./logs/info.log",
+          "max_size": 3,
+          "max_age": 14,
+          "max_backups": 5,
+          "local_time": true,
+          "compress": false,
+          "formatter": { "name": "textfmt", "type": "text" }
         }
       ]
     },
@@ -33,9 +39,14 @@
           "formatter": { "name": "jsonfmt", "type": "json" }
         },
         {
-          "name": "file-warn",
-          "type": "file",
+          "name": "rotating-warn",
+          "type": "rotating_file",
           "path": "./logs/warn.log",
+          "max_size": 50,
+          "max_age": 14,
+          "max_backups": 5,
+          "local_time": true,
+          "compress": false,
           "formatter": { "name": "textfmt", "type": "text" }
         }
       ]
@@ -49,9 +60,14 @@
           "formatter": { "name": "jsonfmt", "type": "json" }
         },
         {
-          "name": "file-error",
-          "type": "file",
+          "name": "rotating-error",
+          "type": "rotating_file",
           "path": "./logs/error.log",
+          "max_size": 100,
+          "max_age": 30,
+          "max_backups": 7,
+          "local_time": true,
+          "compress": true,
           "formatter": { "name": "textfmt", "type": "text" }
         }
       ]

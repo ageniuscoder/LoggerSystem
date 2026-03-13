@@ -14,10 +14,19 @@ type formatterConfig struct {
 }
 
 type appenderConfig struct {
-	Name      string          `json:"name" validate:"required"`
-	Type      string          `json:"type" validate:"required,oneof=console file"`
-	Formatter formatterConfig `json:"formatter" validate:"required"`
-	Path      string          `json:"path,omitempty" validate:"required_if=Type file"`
+	Name      string          `json:"name"        validate:"required"`
+	Type      string          `json:"type"        validate:"required,oneof=console file rotating_file"`
+	Formatter formatterConfig `json:"formatter"   validate:"required"`
+
+	// file + rotating_file
+	Path string `json:"path,omitempty"        validate:"required_if=Type file,required_if=Type rotating_file"`
+
+	// rotating_file only
+	MaxSize    int  `json:"max_size,omitempty"    validate:"required_if=Type rotating_file,omitempty,gt=0"`
+	MaxAge     int  `json:"max_age,omitempty"     validate:"omitempty,gt=0"`
+	MaxBackups int  `json:"max_backups,omitempty" validate:"omitempty,gt=0"`
+	LocalTime  bool `json:"local_time,omitempty"`
+	Compress   bool `json:"compress,omitempty"`
 }
 
 type levelConfig struct {

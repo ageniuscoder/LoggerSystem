@@ -6,14 +6,16 @@ import (
 	"logger/formatter"
 	logs "logger/logger"
 	"logger/logmsg"
+	"os"
+	"path/filepath"
 	"time"
 )
 
-func Build(cfg *LoggerConfig) (*logs.Logger,[]func(),error){
-	var closers []func()
+func Build(cfg *LoggerConfig) (*logs.Logger,[]func() error,error){
+	var closers []func() error
 	level,ok:=logmsg.ParseLevel(cfg.MinLevel)
 	if !ok{
-		return nil,closers,fmt.Errorf("Config: not valid log levle: %q",level.ToStr())
+		return nil,closers,fmt.Errorf("Config: not valid log level: %q",cfg.MinLevel)
 	}
 	system:=logs.NewLogger(cfg.Buffer,level,cfg.BatchSize,time.Duration(cfg.FlushInterval)*time.Millisecond)
 
@@ -22,7 +24,10 @@ func Build(cfg *LoggerConfig) (*logs.Logger,[]func(),error){
 
 			f,err:=buildFormatter(ac.Formatter)
 			if err!=nil{
-				return nil,closers,err
+				for _,c:=range closers{
+					c()
+				}
+				return nil,nil,err
 			}
 
 			a,closer,err:=buildAppender(ac,f)
@@ -49,11 +54,11 @@ func buildFormatter(fc formatterConfig) (formatter.LogFormatter,error){
 	case "json":
 		return formatter.NewJsonFormatter(),nil
 	default:
-		return nil,fmt.Errorf("builder: unkonwn formatter type %q",fc.Type)
+		return nil,fmt.Errorf("builder: unknown formatter type %q",fc.Type)
 	}
 }
 
-func buildAppender(ac appenderConfig,f formatter.LogFormatter) (appender.LogAppender,func(),error){
+func buildAppender(ac appenderConfig,f formatter.LogFormatter) (appender.LogAppender,func() error,error){
 	switch ac.Type{
 	case "console":
 		return appender.NewConsoleAppender(f),nil,nil
@@ -63,7 +68,11 @@ func buildAppender(ac appenderConfig,f formatter.LogFormatter) (appender.LogAppe
 			return nil, nil, fmt.Errorf("builder: cannot open log file %q: %w", ac.Path, err)
 		}
 		return fa,fa.CloseFile,nil
+	case "rotating_file":
+		os.MkdirAll(filepath.Dir(ac.Path), 0755)
+		fa:=appender.NewRotatingFileAppender(ac.Path,ac.MaxSize,ac.MaxAge,ac.MaxBackups,ac.LocalTime,ac.Compress,f)
+		return fa,fa.CloseFile,nil
 	default:
-		return nil,nil,fmt.Errorf("builder: unkonwn appender type %q",ac.Type)
+		return nil,nil,fmt.Errorf("builder: unknown appender type %q",ac.Type)
 	}
 }

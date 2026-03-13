@@ -71,7 +71,7 @@ func AnyField(key string, val any) Field {
 	return Field{
 		Key:    key,
 		Type:   AnyType,
-		StrVal: fmt.Sprintf("%+v\n",val),
+		StrVal: fmt.Sprintf("%+v",val),
 	}
 }
 
@@ -100,7 +100,9 @@ func M(key string,val any) Field{
 func (f Field) AppendTextValue(buf []byte) []byte {  //for performance
 	switch f.Type {
 	case StringType, ErrorType, AnyType:
-		return append(buf, f.StrVal...)
+		buf = append(buf, '"')
+		buf = append(buf, f.StrVal...)
+		return append(buf, '"')
 	case IntType, Int64Type:
 		return strconv.AppendInt(buf, f.NumVal, 10)
 	case Float64Type:
@@ -132,7 +134,13 @@ func AppendJSONString(buf []byte, s string) []byte {
 		case '\t':
 			buf = append(buf, '\\', 't')
 		default:
-			buf = append(buf, c)
+			if c < 0x20 {  // ADD this — escape all control chars
+				buf = append(buf, '\\', 'u', '0', '0')
+				buf = append(buf, "0123456789abcdef"[c>>4])
+				buf = append(buf, "0123456789abcdef"[c&0xf])
+			} else {
+				buf = append(buf, c)
+			}
 		}
 	}
 	return append(buf, '"')

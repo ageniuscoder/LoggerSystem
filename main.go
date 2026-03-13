@@ -16,13 +16,24 @@ func main() {
 		panic(err)
 	}
 
-	for _,c:=range closers{
-		defer c()
-	}
+	defer func() {
+		for _, c := range closers {
+			c()
+		}
+	}()
 
 	defer system.Shutdown()
 
 	// ---- TEST LOGGING WITH STRUCTURED FIELDS ----
+	for i := 0; i < 10000000; i++ {
+		system.Info(
+			"user request processed",
+			logmsg.M("user_id", i),
+			logmsg.M("endpoint", "/api/login"),
+			logmsg.M("latency_ms", float64(i%100)),
+			logmsg.M("success", i%2==0),
+		)
+	}
 
 	system.Debug(
 		"Debug message: application starting",
@@ -80,5 +91,17 @@ func main() {
 		logmsg.M("disk_usage_percent", 95),
 		logmsg.M("retrying", true),
 	)
+
+	for i:=0;i<10;i++{
+		go func(id int){
+			for j:=0;j<1000000;j++{
+				system.Error(
+					"worker log",
+					logmsg.M("worker",id),
+					logmsg.M("iteration",j),
+				)
+			}
+		}(i)
+	}
 
 }

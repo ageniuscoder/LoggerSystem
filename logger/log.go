@@ -52,7 +52,13 @@ func NewLogger(buffer int,minLevel logmsg.LogLevel,batchSize int,flushInterval t
 	return instance
 }
 
-
+func (l *Logger) flush(batch []*logmsg.LogMsg) {
+    l.head.HandleBatch(batch)      // all appenders MUST be done here
+    for _, m := range batch {
+        logmsg.PutMsgPool(m)       // only safe because HandleBatch is synchronous
+    }
+    // Contract: appenders must not retain *LogMsg pointers after AppendBatch returns
+}
 // worker is the single background goroutine that drains the channel.
 // Single worker = guaranteed FIFO ordering of all log messages.
 //it logs in batches
@@ -66,13 +72,13 @@ func (l *Logger) batchWorker(){
 		case msg:=<-l.logbuffer:
 			batch = append(batch, msg)
 			if len(batch)>=l.batchSize {
-				l.head.HandleBatch(batch)
+				l.flush(batch)
 				batch=batch[:0]
 				ticker.Reset(l.flushInterval)
 			}
 		case <-ticker.C:
 			if len(batch) > 0{
-				l.head.HandleBatch(batch)
+				l.flush(batch)
 				batch=batch[:0]
 			}
 		case <-l.done:     //logger is shutdown drain the buffer,bcz logbuffer is never closed
@@ -82,7 +88,7 @@ func (l *Logger) batchWorker(){
 				batch = append(batch, msg)
 			default:
 				if len(batch)>0{
-					l.head.HandleBatch(batch)
+					l.flush(batch)
 					batch=batch[:0]
 				}
 				return
@@ -119,6 +125,7 @@ func (l *Logger) log(level logmsg.LogLevel,msg string,fields []logmsg.Field){
 	default:
 		//non blocking and keep track of dropped logs
 		atomic.AddInt64(&l.droppedCnt,1)
+		logmsg.PutMsgPool(m)
 	}
 	
 }

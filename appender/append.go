@@ -26,7 +26,7 @@ func NewConsoleAppender(formatter formatter.LogFormatter) *ConsoleAppender{
 
 func (ca *ConsoleAppender) AppendMsg(msg *logmsg.LogMsg) error {
 	m:=ca.formatter.Format(msg)
-	fmt.Println(m)
+	fmt.Fprintf(os.Stderr, "%s\n", m)
 	return nil
 }
 
@@ -67,7 +67,7 @@ func (fa *FileAppender) AppendMsg(msg *logmsg.LogMsg) error {
 	defer fa.mu.Unlock()
 	_,err:=fa.file.WriteString(m+"\n")
 	if err!=nil{
-		return fmt.Errorf("Appender: can,t write log to file: %w",err)
+		return fmt.Errorf("Appender: can't write log to file: %w",err)
 	}
 	return nil
 }
@@ -87,13 +87,13 @@ func (fa *FileAppender) AppendBatch(msgs []*logmsg.LogMsg) error{
 	defer fa.mu.Unlock()
 	_,err:=fa.file.WriteString(sb.String())
 	if err!=nil{
-		return fmt.Errorf("Appender: can,t write batch log to file: %w",err)
+		return fmt.Errorf("Appender: can't write batch log to file: %w",err)
 	}
 	return nil
 }
 
-func (fa *FileAppender) CloseFile(){
+func (fa *FileAppender) CloseFile() error {
 	fa.mu.Lock()
 	defer fa.mu.Unlock()
-	fa.file.Close()
+	return fa.file.Close()
 }

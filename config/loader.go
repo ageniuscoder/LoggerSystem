@@ -50,9 +50,12 @@ func validateStruct(cfg *LoggerConfig) error {
 func Load(path string) (*LoggerConfig, error) {
 	data,err:=os.ReadFile(path)
 	if err!=nil{
-		return nil,fmt.Errorf("config: can,t read file %q: %w",path,err)
+		return nil,fmt.Errorf("config: can't read file %q: %w",path,err)
 	}
 	ext:=strings.ToLower(filepath.Ext(path))
+	if len(ext)<2{
+		return nil, fmt.Errorf("config: file has no extension: %q", path)
+	}
 	ext=ext[1:]
 	jf:=GetInstance()
 	parser,ok:=jf.GetParser(ext)

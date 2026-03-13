@@ -87,8 +87,8 @@ func (bh *BaseHandler) ForwardBatch(msgs []*logmsg.LogMsg){
 }
 
 func (bh *BaseHandler) getMineAndOtherBatch(level logmsg.LogLevel,msgs []*logmsg.LogMsg) ([]*logmsg.LogMsg,[]*logmsg.LogMsg){
-	mine:=make([]*logmsg.LogMsg,0)
-	other:=make([]*logmsg.LogMsg,0)
+	mine:=make([]*logmsg.LogMsg,0,len(msgs))
+	other:=make([]*logmsg.LogMsg,0,len(msgs))
 
 	for _,msg:=range msgs{
 		if msg.Level==level{

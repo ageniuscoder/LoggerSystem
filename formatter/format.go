@@ -1,7 +1,6 @@
 package formatter
 
 import (
-	"fmt"
 	"logger/logmsg"
 	"strconv"
 	"sync"
@@ -17,33 +16,6 @@ type TextFormatter struct{
 func NewTextFormatter() *TextFormatter{
 	return &TextFormatter{
 	}
-}
-
-func (tf *TextFormatter) Format(msg *logmsg.LogMsg) string{
-	base := fmt.Sprintf("[%s]- %s %s:%d: %s",
-		msg.GetLevel(),
-		msg.GetTimestamp(),
-		msg.File,
-		msg.Line,
-		msg.Content,
-	)
-	if len(msg.Fields) == 0 {
-		return base
-	}
-
-	b:=make([]byte,0,len(base)+len(msg.Fields)*20)  //preallocating size for high performance
-	b=append(b, base...)  //spreads string into individual bytes
-
-	for _,f:=range msg.Fields{
-		b=append(b, ' ')
-		b=append(b, '|')
-		b=append(b, ' ')
-		b=append(b, f.Key...)
-		b=append(b,'=')
-		b=f.AppendTextValue(b)
-	}
-
-	return string(b)
 }
 
 /*
@@ -75,6 +47,30 @@ func putBuffer(b *[]byte) {
 	*b = (*b)[:0]   // reset length
 	bufPool.Put(b)
 }
+
+func (tf *TextFormatter) Format(msg *logmsg.LogMsg) string {
+  bf := getBuffer()
+  *bf = append(*bf, '[')
+  *bf = append(*bf, msg.GetLevel()...)
+  *bf = append(*bf, "]- "...)
+  *bf = append(*bf, msg.GetTimestamp()...)
+  *bf = append(*bf, ' ')
+  *bf = append(*bf, msg.File...)
+  *bf = append(*bf, ':')
+  *bf = strconv.AppendInt(*bf, int64(msg.Line), 10)
+  *bf = append(*bf, ": "...)
+  *bf = append(*bf, msg.Content...)
+  for _, f := range msg.Fields {
+    *bf = append(*bf, " | "...)
+    *bf = append(*bf, f.Key...)
+    *bf = append(*bf, '=')
+    *bf = f.AppendTextValue(*bf)
+  }
+  result := string(*bf)
+  putBuffer(bf)
+  return result
+}
+
 
 type JsonFormatter struct{
 }
