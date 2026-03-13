@@ -18,6 +18,7 @@ type Logger struct {
 	min_level logmsg.LogLevel
 	batchSize int
 	flushInterval time.Duration
+	shutdownOnce sync.Once
 }
 
 var(
@@ -73,8 +74,10 @@ func (l *Logger) batchWorker(){
 				ticker.Reset(l.flushInterval)
 			}
 		case <-ticker.C:
-			l.head.HandleBatch(batch)
-			batch=batch[:0]
+			if len(batch) > 0{
+				l.head.HandleBatch(batch)
+				batch=batch[:0]
+			}
 		case <-l.done:     //logger is shutdown drain the buffer,bcz logbuffer is never closed
 		for{
 			select{
@@ -93,33 +96,34 @@ func (l *Logger) batchWorker(){
 
 // worker is the single background goroutine that drains the channel.
 // Single worker = guaranteed FIFO ordering of all log messages.
-func (l *Logger) worker(){
-	defer l.wg.Done()
-	for{
-		select {
-		case msg,ok:=<-l.logbuffer:
-			if !ok{
-				return
-			}
-			l.head.HandleLog(msg)
-		case <-l.done:     //logger is shutdown drain the buffer,bcz logbuffer is never closed
-		for{
-			select{
-			case msg:=<-l.logbuffer:
-				l.head.HandleLog(msg)
-			default:
-				return
-			}
-		}
-		}
+// func (l *Logger) worker(){
+// 	defer l.wg.Done()
+// 	for{
+// 		select {
+// 		case msg,ok:=<-l.logbuffer:
+// 			if !ok{
+// 				return
+// 			}
+// 			l.head.HandleLog(msg)
+// 		case <-l.done:     //logger is shutdown drain the buffer,bcz logbuffer is never closed
+// 		for{
+// 			select{
+// 			case msg:=<-l.logbuffer:
+// 				l.head.HandleLog(msg)
+// 			default:
+// 				return
+// 			}
+// 		}
+// 		}
 	
-	}
-}
+// 	}
+// }
 
-func (l *Logger) Shutdown(){
-	close(l.done)   // signals: reject new sends 
-	//close(l.logbuffer)  don,t close data sending channel at recieving side,, only close at sender side
-	l.wg.Wait()
+func (l *Logger) Shutdown(){  
+	l.shutdownOnce.Do(func() {
+		close(l.done)   // signals: reject new sends
+		l.wg.Wait()
+	})
 }
 
 func (l *Logger) AddAppender(level string,appender appender.LogAppender){

@@ -86,7 +86,7 @@ func (bh *BaseHandler) ForwardBatch(msgs []*logmsg.LogMsg){
 	}
 }
 
-func (bh *BaseHandler) GetMineAndOtherBatch(level logmsg.LogLevel,msgs []*logmsg.LogMsg) ([]*logmsg.LogMsg,[]*logmsg.LogMsg){
+func (bh *BaseHandler) getMineAndOtherBatch(level logmsg.LogLevel,msgs []*logmsg.LogMsg) ([]*logmsg.LogMsg,[]*logmsg.LogMsg){
 	mine:=make([]*logmsg.LogMsg,0)
 	other:=make([]*logmsg.LogMsg,0)
 
@@ -119,7 +119,7 @@ func (dh *DebugHandler) HandleLog(msg *logmsg.LogMsg){
 }
 
 func (dh *DebugHandler) HandleBatch(msgs []*logmsg.LogMsg){
-	mine,other:=dh.GetMineAndOtherBatch(logmsg.DEBUG,msgs)
+	mine,other:=dh.getMineAndOtherBatch(logmsg.DEBUG,msgs)
 
 	if len(mine)>0{
 		dh.NotifyBatch(mine)
@@ -144,7 +144,7 @@ func (ih *InfoHandler) HandleLog(msg *logmsg.LogMsg){
 }
 
 func (ih *InfoHandler) HandleBatch(msgs []*logmsg.LogMsg){
-	mine,other:=ih.GetMineAndOtherBatch(logmsg.INFO,msgs)
+	mine,other:=ih.getMineAndOtherBatch(logmsg.INFO,msgs)
 
 	if len(mine)>0{
 		ih.NotifyBatch(mine)
@@ -169,7 +169,7 @@ func (wh *WarningHandler) HandleLog(msg *logmsg.LogMsg){
 }
 
 func (wh *WarningHandler) HandleBatch(msgs []*logmsg.LogMsg){
-	mine,other:=wh.GetMineAndOtherBatch(logmsg.WARNING,msgs)
+	mine,other:=wh.getMineAndOtherBatch(logmsg.WARNING,msgs)
 
 	if len(mine)>0{
 		wh.NotifyBatch(mine)
@@ -194,7 +194,7 @@ func (eh *ErrorHandler) HandleLog(msg *logmsg.LogMsg){
 }
 
 func (eh *ErrorHandler) HandleBatch(msgs []*logmsg.LogMsg){
-	mine,other:=eh.GetMineAndOtherBatch(logmsg.ERROR,msgs)
+	mine,other:=eh.getMineAndOtherBatch(logmsg.ERROR,msgs)
 
 	if len(mine)>0{
 		eh.NotifyBatch(mine)
