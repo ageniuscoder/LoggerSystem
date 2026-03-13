@@ -3,6 +3,7 @@ package main
 import (
 	"logger/config"
 	"logger/logmsg"
+	"sync"
 )
 
 func main() {
@@ -92,9 +93,12 @@ func main() {
 		logmsg.M("retrying", true),
 	)
 
+	var wg sync.WaitGroup
 	for i:=0;i<10;i++{
+		wg.Add(1)
 		go func(id int){
-			for j:=0;j<1000000;j++{
+			defer wg.Done()
+			for j:=0;j<100000000;j++{
 				system.Error(
 					"worker log",
 					logmsg.M("worker",id),
@@ -103,5 +107,7 @@ func main() {
 			}
 		}(i)
 	}
+
+	wg.Wait()
 
 }

@@ -1,9 +1,11 @@
 package logs
 
 import (
+	"fmt"
 	"logger/appender"
 	"logger/handler"
 	"logger/logmsg"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -67,6 +69,8 @@ func (l *Logger) batchWorker(){
 	batch:=make([]*logmsg.LogMsg,0,l.batchSize)
 	ticker:=time.NewTicker(l.flushInterval)
 	defer ticker.Stop()
+	statsTicker:=time.NewTicker(1*time.Second)
+	defer statsTicker.Stop()
 	for{
 		select {
 		case msg:=<-l.logbuffer:
@@ -81,6 +85,8 @@ func (l *Logger) batchWorker(){
 				l.flush(batch)
 				batch=batch[:0]
 			}
+		case <-statsTicker.C:
+			fmt.Fprintf(os.Stderr,"Dropped logs are: %v \n",l.GetDroppedLogsCnt())
 		case <-l.done:     //logger is shutdown drain the buffer,bcz logbuffer is never closed
 		for{
 			select{

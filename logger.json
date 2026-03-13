@@ -1,8 +1,8 @@
 {
-  "buffer": 512,
+  "buffer": 100000,
   "min_level": "info",
-  "batch_size": 100,
-  "flush_interval": 500,
+  "batch_size": 10000,
+  "flush_interval": 100,
   "levels": [
     {
       "level": "debug",
@@ -34,11 +34,6 @@
       "level": "warning",
       "appenders": [
         {
-          "name": "console-warn",
-          "type": "console",
-          "formatter": { "name": "jsonfmt", "type": "json" }
-        },
-        {
           "name": "rotating-warn",
           "type": "rotating_file",
           "path": "./logs/warn.log",
@@ -54,11 +49,6 @@
     {
       "level": "error",
       "appenders": [
-        {
-          "name": "console-error",
-          "type": "console",
-          "formatter": { "name": "jsonfmt", "type": "json" }
-        },
         {
           "name": "rotating-error",
           "type": "rotating_file",

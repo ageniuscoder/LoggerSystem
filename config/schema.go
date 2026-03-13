@@ -4,7 +4,7 @@ type LoggerConfig struct {
 	Levels        []levelConfig `json:"levels" validate:"required,min=1,dive"`
 	Buffer        int           `json:"buffer" validate:"gte=0,lte=100000"`
 	MinLevel      string        `json:"min_level" validate:"oneof=debug info warning error"`
-	BatchSize     int           `json:"batch_size" validate:"gte=1,lte=1000"`
+	BatchSize     int           `json:"batch_size" validate:"gte=1,lte=10000"`
 	FlushInterval int           `json:"flush_interval" validate:"gte=10,lte=60000"` //in milisecond
 }
 
