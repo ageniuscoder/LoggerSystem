@@ -5,6 +5,7 @@ import (
 	"logger/handler"
 	"logger/logmsg"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -15,46 +16,42 @@ type Logger struct {
 	logbuffer chan *logmsg.LogMsg
 	wg sync.WaitGroup
 	done chan struct{}
-	min_level logmsg.LogLevel
+	minLevel logmsg.LogLevel
 	batchSize int
 	flushInterval time.Duration
 	shutdownOnce sync.Once
+	droppedCnt int64
 }
 
-var(
-	instance *Logger
-	once sync.Once
-)
-
-func GetInstance(buffer int,min_level logmsg.LogLevel,batchSize int,flushInterval time.Duration) *Logger{
-	once.Do(func() {
-		mp:=make(map[string]handler.LogHandler)
-		mp["debug"]=handler.NewDebugHandler()
-		mp["info"]=handler.NewInfoHandler()
-		mp["warning"]=handler.NewWarningHandler()
-		mp["error"]=handler.NewErrorHandler()
-		minHead,ok:=mp[min_level.ToStr()]
-		if !ok{
-			minHead=mp["debug"]
-		}
-		instance=&Logger{
-			handlers: mp,
-			logbuffer: make(chan *logmsg.LogMsg,buffer),
-			done: make(chan struct{}),
-			head: minHead,
-			min_level: min_level,
-			batchSize: batchSize,
-			flushInterval: flushInterval,
-		}
-		instance.handlers["debug"].SetNext(instance.handlers["info"])
-		instance.handlers["info"].SetNext(instance.handlers["warning"])
-		instance.handlers["warning"].SetNext(instance.handlers["error"])
-		instance.handlers["error"].SetNext(nil)
-		instance.wg.Add(1)
-		go instance.batchWorker()
-	})
+//constructor based logger
+func NewLogger(buffer int,minLevel logmsg.LogLevel,batchSize int,flushInterval time.Duration) *Logger{
+	mp:=make(map[string]handler.LogHandler)
+	mp["debug"]=handler.NewDebugHandler()
+	mp["info"]=handler.NewInfoHandler()
+	mp["warning"]=handler.NewWarningHandler()
+	mp["error"]=handler.NewErrorHandler()
+	minHead,ok:=mp[minLevel.ToStr()]
+	if !ok{
+		minHead=mp["debug"]
+	}
+	instance:=&Logger{
+		handlers: mp,
+		logbuffer: make(chan *logmsg.LogMsg,buffer),
+		done: make(chan struct{}),
+		head: minHead,
+		minLevel: minLevel,
+		batchSize: batchSize,
+		flushInterval: flushInterval,
+	}
+	instance.handlers["debug"].SetNext(instance.handlers["info"])
+	instance.handlers["info"].SetNext(instance.handlers["warning"])
+	instance.handlers["warning"].SetNext(instance.handlers["error"])
+	instance.handlers["error"].SetNext(nil)
+	instance.wg.Add(1)
+	go instance.batchWorker()
 	return instance
 }
+
 
 // worker is the single background goroutine that drains the channel.
 // Single worker = guaranteed FIFO ordering of all log messages.
@@ -84,8 +81,10 @@ func (l *Logger) batchWorker(){
 			case msg:=<-l.logbuffer:
 				batch = append(batch, msg)
 			default:
-				l.head.HandleBatch(batch)
-				batch=batch[:0]
+				if len(batch)>0{
+					l.head.HandleBatch(batch)
+					batch=batch[:0]
+				}
 				return
 			}
 		}
@@ -94,30 +93,6 @@ func (l *Logger) batchWorker(){
 	}
 }
 
-// worker is the single background goroutine that drains the channel.
-// Single worker = guaranteed FIFO ordering of all log messages.
-// func (l *Logger) worker(){
-// 	defer l.wg.Done()
-// 	for{
-// 		select {
-// 		case msg,ok:=<-l.logbuffer:
-// 			if !ok{
-// 				return
-// 			}
-// 			l.head.HandleLog(msg)
-// 		case <-l.done:     //logger is shutdown drain the buffer,bcz logbuffer is never closed
-// 		for{
-// 			select{
-// 			case msg:=<-l.logbuffer:
-// 				l.head.HandleLog(msg)
-// 			default:
-// 				return
-// 			}
-// 		}
-// 		}
-	
-// 	}
-// }
 
 func (l *Logger) Shutdown(){  
 	l.shutdownOnce.Do(func() {
@@ -133,7 +108,7 @@ func (l *Logger) AddAppender(level string,appender appender.LogAppender){
 }
 
 func (l *Logger) log(level logmsg.LogLevel,msg string){
-	if level<l.min_level{
+	if level<l.minLevel{
 		return
 	}
 	m:=logmsg.NewLogMsg(level,msg)
@@ -141,6 +116,9 @@ func (l *Logger) log(level logmsg.LogLevel,msg string){
 	case <-l.done:
 		//ignore silently if shutdown not panic
 	case l.logbuffer<-m:
+	default:
+		//non blocking and keep track of dropped logs
+		atomic.AddInt64(&l.droppedCnt,1)
 	}
 	
 }
@@ -159,6 +137,10 @@ func (l *Logger) Warning(con string){
 
 func (l *Logger) Error(con string){
 	l.log(logmsg.ERROR,con)
+}
+
+func (l *Logger) GetDroppedLogsCnt() int64{
+	return atomic.LoadInt64(&l.droppedCnt)
 }
 
 
