@@ -30,13 +30,13 @@ func Build(cfg *LoggerConfig) (*logs.Logger, []func() error, error) {
 
 			f, err := buildFormatter(ac.Formatter)
 			if err != nil {
-				closeAll(closers)
+				closeAll(system,closers)
 				return nil, nil, err
 			}
 
 			a, closer, err := buildAppender(ac, f)
 			if err != nil {
-				closeAll(closers)
+				closeAll(system,closers)
 				return nil, nil, err
 			}
 			if closer != nil {
@@ -79,7 +79,8 @@ func buildAppender(ac appenderConfig, f formatter.LogFormatter) (appender.LogApp
 	}
 }
 
-func closeAll(closers []func() error) {
+func closeAll(sys *CoreLogger,closers []func() error) {
+	sys.Shutdown()
     for _, c := range closers {
         c()
     }
@@ -122,14 +123,14 @@ func BuildFromOptions(o Options) (*logs.Logger, []func() error, error) {
 
     for _, ao := range o.Appenders {
         if err := validateAppenderOption(ao); err != nil {
-            closeAll(closers)
+            closeAll(sys,closers)
             return nil, nil, err
         }
 		f := buildFormatterByName(ao.Formatter)
 
         a, closer, err := buildAppenderFromOption(ao, f)
         if err != nil {
-            closeAll(closers)
+            closeAll(sys,closers)
             return nil, nil, err
         }
         if closer != nil {
