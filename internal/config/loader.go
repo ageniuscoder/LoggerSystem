@@ -65,20 +65,16 @@ func Load(path string) (*LoggerConfig, error) {
 	if err!=nil{
 		return nil,fmt.Errorf("parser error: %w",err)
 	}
-	if cfg.Buffer==0{    //adding default buffer size
-		cfg.Buffer=512
-	}
-	if cfg.MinLevel==""{   //default level
-		cfg.MinLevel="debug"
-	}
-	if cfg.BatchSize==0{   //default batch size
-		cfg.BatchSize=100
-	}
-	if cfg.FlushInterval==0{  //default flush time
-		cfg.FlushInterval=500
-	}
+	applyDefaults(cfg)
 	if err:=validateStruct(cfg); err!=nil{
 		return nil,fmt.Errorf("validation error: %w",err)
 	}
 	return cfg,nil
+}
+
+func applyDefaults(cfg *LoggerConfig) {
+    if cfg.Buffer == 0        { cfg.Buffer = 4096 }
+    if cfg.MinLevel == ""     { cfg.MinLevel = "debug" }
+    if cfg.BatchSize == 0     { cfg.BatchSize = 256 }
+    if cfg.FlushInterval == 0 { cfg.FlushInterval = 100 }
 }

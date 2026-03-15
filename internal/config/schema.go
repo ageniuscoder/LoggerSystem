@@ -33,3 +33,32 @@ type levelConfig struct {
 	Level     string           `json:"level" validate:"required,oneof=debug info warning error"`
 	Appenders []appenderConfig `json:"appenders" validate:"required,min=1,dive"`
 }
+
+//for user convenience
+
+// Options is the programmatic config used by mlog.New() and functional options.
+// It is the code equivalent of logger.json — no file needed.
+type Options struct {
+	MinLevel      string // "debug" | "info" | "warning" | "error"
+	Buffer        int    // async channel capacity
+	BatchSize     int    // flush after this many messages
+	FlushInterval int    // flush after this many milliseconds
+	Appenders     []AppenderOption
+}
+
+// AppenderOption describes one appender inside Options.
+// When built via BuildFromOptions, every appender attaches to all level handlers.
+type AppenderOption struct {
+	Type      string // "console" | "file" | "rotating_file"
+	Formatter string // "text" | "json"
+
+	// Required when Type is "file" or "rotating_file"
+	Path string
+
+	// rotating_file only — sensible zero-value defaults applied in BuildFromOptions
+	MaxSize    int  // megabytes per file before rotation
+	MaxAge     int  // days to keep old files
+	MaxBackups int  // max number of old files to keep
+	LocalTime  bool // use local time in rotation timestamps
+	Compress   bool // gzip rotated files
+}

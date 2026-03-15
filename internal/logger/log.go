@@ -113,6 +113,12 @@ func (l *Logger) Shutdown(){
 }
 
 func (l *Logger) AddAppender(level string,appender appender.LogAppender){
+	if level==""{        //add same appender to all handlers
+		for _,h:=range l.handlers{
+			h.AddAppender(appender)
+		}
+		return
+	}
 	if ap,ok:=l.handlers[level]; ok{
 		ap.AddAppender(appender)
 	}
