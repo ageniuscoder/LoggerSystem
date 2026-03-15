@@ -57,8 +57,7 @@ func Load(path string) (*LoggerConfig, error) {
 		return nil, fmt.Errorf("config: file has no extension: %q", path)
 	}
 	ext=ext[1:]
-	jf:=GetInstance()
-	parser,ok:=jf.GetParser(ext)
+	parser,ok:=getParser(ext)
 	if !ok{
 		return nil,fmt.Errorf("parser not exists for ext %q",ext)
 	}

@@ -17,5 +17,5 @@ func (jp *JsonParser) Parse(data []byte) (*LoggerConfig, error) {
 }
 
 func init(){   //this is for self registry
-	GetInstance().Register("json",&JsonParser{})
+	Register("json",&JsonParser{})
 }
