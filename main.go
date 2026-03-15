@@ -1,107 +1,93 @@
 package main
 
 import (
-	"logger/logmsg"
-	"logger/start"
+	mlog "logger/start"
 	"sync"
 )
 
 func main() {
-	system,closers,err:=start.Run("./logger.json")
+	system,closers,err:=mlog.Run("./logger.json")
 	if err!=nil{
 		panic(err)
 	}
 
-	defer func() {
-		for _, c := range closers {
-			c()
-		}
-	}()
+	defer mlog.ShutDown(closers,system)
 
-	defer system.Shutdown()
 
 	// ---- TEST LOGGING WITH STRUCTURED FIELDS ----
-	for i := 0; i < 10000000; i++ {
-		system.Info(
-			"user request processed",
-			logmsg.M("user_id", i),
-			logmsg.M("endpoint", "/api/login"),
-			logmsg.M("latency_ms", float64(i%100)),
-			logmsg.M("success", i%2==0),
-		)
-	}
-
-	system.Debug(
-		"Debug message: application starting",
-		logmsg.M("version", "1.0.0"),
-		logmsg.M("env", "dev"),
-		logmsg.M("debug_mode", true),
-	)
-
-	system.Info(
-		"Info message: server initialized",
-		logmsg.M("host", "localhost"),
-		logmsg.M("port", 8080),
-		logmsg.M("startup_time", 1.23),
-	)
-
-	system.Warning(
-		"Warning message: memory usage high",
-		logmsg.M("memory_mb", 2048),
-		logmsg.M("threshold_mb", 1024),
-		logmsg.M("usage_percent", 87.5),
-	)
-
-	system.Error(
-		"Error message: database connection failed",
-		logmsg.M("db", "users_db"),
-		logmsg.M("host", "db-server"),
-		logmsg.M("retry_count", 3),
-		logmsg.M("critical", true),
-	)
-
-	system.Debug(
-		"Debug message: processing request",
-		logmsg.M("method", "GET"),
-		logmsg.M("endpoint", "/api/users"),
-		logmsg.M("request_id", 12345),
-	)
-
-	system.Info(
-		"Info message: request completed",
-		logmsg.M("status_code", 200),
-		logmsg.M("latency_ms", 12.45),
-		logmsg.M("client_ip", "192.168.1.20"),
-	)
-
-	system.Warning(
-		"Warning message: cache miss",
-		logmsg.M("cache_key", "user_profile_42"),
-		logmsg.M("cache_layer", "redis"),
-		logmsg.M("fallback_db", true),
-	)
-
-	system.Error(
-		"Error message: unable to write to disk",
-		logmsg.M("file", "/var/log/app.log"),
-		logmsg.M("disk_usage_percent", 95),
-		logmsg.M("retrying", true),
-	)
-
 	var wg sync.WaitGroup
 	for i:=0;i<10;i++{
 		wg.Add(1)
 		go func(id int){
 			defer wg.Done()
-			for j:=0;j<100000000;j++{
+			for j:=0;j<10000;j++{
 				system.Error(
 					"worker log",
-					logmsg.M("worker",id),
-					logmsg.M("iteration",j),
+					mlog.M("worker",id),
+					mlog.M("iteration",j),
 				)
 			}
 		}(i)
 	}
+
+
+	system.Debug(
+		"Debug message: application starting",
+		mlog.M("version", "1.0.0"),
+		mlog.M("env", "dev"),
+		mlog.M("debug_mode", true),
+	)
+
+	system.Info(
+		"Info message: server initialized",
+		mlog.M("port", 8080),
+		mlog.M("host", "localhost"),
+		mlog.M("startup_time", 1.23),
+	)
+
+	system.Warning(
+		"Warning message: memory usage high",
+		mlog.M("memory_mb", 2048),
+		mlog.M("threshold_mb", 1024),
+		mlog.M("usage_percent", 87.5),
+	)
+
+	system.Error(
+		"Error message: database connection failed",
+		mlog.M("db", "users_db"),
+		mlog.M("host", "db-server"),
+		mlog.M("retry_count", 3),
+		mlog.M("critical", true),
+	)
+
+	system.Debug(
+		"Debug message: processing request",
+		mlog.M("method", "GET"),
+		mlog.M("endpoint", "/api/users"),
+		mlog.M("request_id", 12345),
+	)
+
+	system.Info(
+		"Info message: request completed",
+		mlog.M("status_code", 200),
+		mlog.M("latency_ms", 12.45),
+		mlog.M("client_ip", "192.168.1.20"),
+	)
+
+	system.Warning(
+		"Warning message: cache miss",
+		mlog.M("cache_key", "user_profile_42"),
+		mlog.M("cache_layer", "redis"),
+		mlog.M("fallback_db", true),
+	)
+
+	system.Error(
+		"Error message: unable to write to disk",
+		mlog.M("file", "/var/log/app.log"),
+		mlog.M("disk_usage_percent", 95),
+		mlog.M("retrying", true),
+	)
+
 
 	wg.Wait()
 

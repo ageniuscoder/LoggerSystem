@@ -1,9 +1,10 @@
-package start
+package mlog
 
 import (
 	"fmt"
 	"logger/config"
 	logs "logger/logger"
+	"logger/logmsg"
 )
 
 func Run(path string) (*logs.Logger,[]func() error,error) {
@@ -18,4 +19,15 @@ func Run(path string) (*logs.Logger,[]func() error,error) {
 	}
 
 	return system,closers,nil
+}
+
+func ShutDown(closers []func() error,system *logs.Logger){
+	system.Shutdown()
+	for _,c:=range closers{
+		c()
+	}
+}
+
+func M(key string,val any) logmsg.Field{
+	return logmsg.M(key,val)
 }
