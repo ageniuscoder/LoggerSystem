@@ -3,7 +3,7 @@ package main
 import (
 	"sync"
 
-	mlog "github.com/ageniuscoder/mlog/start"
+	"github.com/ageniuscoder/mlog/mlog"
 )
 
 func main() {

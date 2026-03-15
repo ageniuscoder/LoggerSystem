@@ -38,8 +38,8 @@ func PutMsgPool(m *LogMsg){
     m.Line    = 0
 	msgPool.Put(m)
 }
-func NewLogMsg(level LogLevel,content string, fields []Field) *LogMsg{
-	_,file,line,ok:=runtime.Caller(3)
+func NewLogMsg(level LogLevel,content string, fields []Field,skip int) *LogMsg{
+	_,file,line,ok:=runtime.Caller(skip)
 	if ok{
 		file=filepath.Base(file)
 	}

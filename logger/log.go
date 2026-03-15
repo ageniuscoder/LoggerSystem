@@ -125,7 +125,7 @@ func (l *Logger) log(level logmsg.LogLevel,msg string,fields []logmsg.Field){
 	if level<l.minLevel{
 		return
 	}
-	m:=logmsg.NewLogMsg(level,msg,fields)
+	m:=logmsg.NewLogMsg(level,msg,fields,3)
 	select{
 	case <-l.done:
 		//ignore silently if shutdown not panic
