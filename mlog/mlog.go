@@ -9,7 +9,7 @@
 //	// 2. Code config — no JSON file needed.
 //	log, stop := mlog.New(
 //	    mlog.WithLevel("info"),
-//	    mlog.WithRotatingFile("./logs/app.log", 100, 14),
+//	    mlog.WithRotatingFile("./logs/app.log", 100, 14, 5),
 //	)
 //	defer stop()
 //
@@ -56,6 +56,7 @@ type Field = logmsg.Field
 //	mlog.M("latency", 1.24)        // float64
 //	mlog.M("err",     err)         // error  — nil-safe
 //	mlog.M("obj",     myStruct)    // any    — formatted with %+v
+//  mlog.M("key",     any)         // any    — formatted with +v
 func M(key string, val any) Field {
 	return logmsg.M(key, val)
 }
@@ -100,7 +101,7 @@ func Default() (*Logger, func()) {
 //	log, stop := mlog.New(
 //	    mlog.WithLevel("info"),
 //	    mlog.WithConsole("text"),
-//	    mlog.WithRotatingFile("./logs/app.log", 100, 14),
+//	    mlog.WithRotatingFile("./logs/app.log", 100, 14, 5),
 //	)
 //	defer stop()
 //
@@ -157,28 +158,41 @@ func FromFile(path string) (*Logger, func(), error) {
 //
 //	log.Debug("cache lookup", mlog.M("key", "user:42"), mlog.M("hit", false))
 func (l *Logger) Debug(msg string, fields ...Field) {
-	l.core.Debug(msg, fields...)
+	l.core.Debug(msg, fields)
 }
 
 // Info logs at info level.
 //
 //	log.Info("server started", mlog.M("port", 8080), mlog.M("env", "prod"))
 func (l *Logger) Info(msg string, fields ...Field) {
-	l.core.Info(msg, fields...)
+	l.core.Info(msg, fields)
 }
 
 // Warning logs at warning level.
 //
 //	log.Warning("disk space low", mlog.M("free_gb", 2), mlog.M("path", "/var"))
 func (l *Logger) Warning(msg string, fields ...Field) {
-	l.core.Warning(msg, fields...)
+	l.core.Warning(msg, fields)
 }
 
-// Error logs at error level.
+// Error logs a message at the error level.
 //
-//	log.Error("db connection failed", mlog.M("host", "db01"), mlog.M("err", err))
+// Use this for errors that are relevant to the operation of the application 
+// but do not require immediate termination.
+//
+//  log.Error("db connection failed", mlog.M("host", "db01"), mlog.M("err", err))
 func (l *Logger) Error(msg string, fields ...Field) {
-	l.core.Error(msg, fields...)
+    l.core.Error(msg, fields)
+}
+
+// Fatal logs a message at the fatal level.
+//
+// Fatal represents the highest log level, typically used for unrecoverable 
+// errors that require the application to exit or halt.
+//
+//  log.Fatal("failed to load configuration", mlog.M("path", "./config.json"), mlog.M("err", err))
+func (l *Logger) Fatal(msg string, fields ...Field) {
+    l.core.Fatal(msg, fields)
 }
 
 // DroppedCount returns the total number of log messages dropped since

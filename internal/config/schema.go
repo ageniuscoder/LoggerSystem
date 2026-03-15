@@ -3,13 +3,13 @@ package config
 type LoggerConfig struct {
 	Levels        []levelConfig `json:"levels" validate:"required,min=1,dive"`
 	Buffer        int           `json:"buffer" validate:"gte=0,lte=100000"`
-	MinLevel      string        `json:"min_level" validate:"oneof=debug info warning error"`
+	MinLevel      string        `json:"min_level" validate:"oneof=debug info warning error fatal"`
 	BatchSize     int           `json:"batch_size" validate:"gte=1,lte=10000"`
+	MinSkip       int           `json:"min_skip" validate:"gte=1,lte=10"`
 	FlushInterval int           `json:"flush_interval" validate:"gte=10,lte=60000"` //in milisecond
 }
 
 type formatterConfig struct {
-	Name string `json:"name" validate:"required"`
 	Type string `json:"type" validate:"required,oneof=json text"`
 }
 
@@ -30,7 +30,7 @@ type appenderConfig struct {
 }
 
 type levelConfig struct {
-	Level     string           `json:"level" validate:"required,oneof=debug info warning error"`
+	Level     string           `json:"level" validate:"required,oneof=debug info warning error fatal"`
 	Appenders []appenderConfig `json:"appenders" validate:"required,min=1,dive"`
 }
 
@@ -39,10 +39,11 @@ type levelConfig struct {
 // Options is the programmatic config used by mlog.New() and functional options.
 // It is the code equivalent of logger.json — no file needed.
 type Options struct {
-	MinLevel      string // "debug" | "info" | "warning" | "error"
+	MinLevel      string // "debug" | "info" | "warning" | "error" | "fatal"
 	Buffer        int    // async channel capacity
 	BatchSize     int    // flush after this many messages
 	FlushInterval int    // flush after this many milliseconds
+	MinSkip       int    // Min skip for caller
 	Appenders     []AppenderOption
 }
 

@@ -203,3 +203,29 @@ func (eh *ErrorHandler) HandleBatch(msgs []*logmsg.LogMsg){
 	}
 	eh.ForwardBatch(other)
 }
+
+
+type FatalHandler struct{
+	BaseHandler
+}
+
+func NewFatalHandler() *FatalHandler{
+	return &FatalHandler{}
+}
+
+func (fh *FatalHandler) HandleLog(msg *logmsg.LogMsg){
+	if msg.Level==logmsg.FATAL{
+		fh.Notify(msg)
+		return
+	}
+	fh.Forward(msg)
+}
+
+func (fh *FatalHandler) HandleBatch(msgs []*logmsg.LogMsg){
+	mine,other:=fh.getMineAndOtherBatch(logmsg.FATAL,msgs)
+
+	if len(mine)>0{
+		fh.NotifyBatch(mine)
+	}
+	fh.ForwardBatch(other)
+}

@@ -77,4 +77,5 @@ func applyDefaults(cfg *LoggerConfig) {
     if cfg.MinLevel == ""     { cfg.MinLevel = "debug" }
     if cfg.BatchSize == 0     { cfg.BatchSize = 256 }
     if cfg.FlushInterval == 0 { cfg.FlushInterval = 100 }
+	if cfg.MinSkip ==0 { cfg.MinSkip=4}
 }

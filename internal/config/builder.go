@@ -23,7 +23,7 @@ func Build(cfg *LoggerConfig) (*logs.Logger, []func() error, error) {
 	if !ok {
 		return nil, closers, fmt.Errorf("Config: not valid log level: %q", cfg.MinLevel)
 	}
-	system := logs.NewLogger(cfg.Buffer, level, cfg.BatchSize, time.Duration(cfg.FlushInterval)*time.Millisecond)
+	system := logs.NewLogger(cfg.Buffer, level, cfg.BatchSize,cfg.MinSkip,time.Duration(cfg.FlushInterval)*time.Millisecond)
 
 	for _, lv := range cfg.Levels {
 		for _, ac := range lv.Appenders {
@@ -114,6 +114,7 @@ func BuildFromOptions(o Options) (*logs.Logger, []func() error, error) {
     sys := logs.NewLogger(
         o.Buffer, level,
         o.BatchSize,
+		o.MinSkip,
         time.Duration(o.FlushInterval)*time.Millisecond,
     )
 
@@ -148,6 +149,7 @@ func applyOptionDefaults(o Options) Options {
     if o.Buffer == 0        { o.Buffer = 4096 }
     if o.BatchSize == 0     { o.BatchSize = 256 }
     if o.FlushInterval == 0 { o.FlushInterval = 100 }
+	if o.MinSkip ==0        {o.MinSkip=4}
 
     for i := range o.Appenders {
         // rotating_file zero values

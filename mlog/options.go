@@ -64,16 +64,21 @@ func WithConsole(formatter string) Option {
 // WithFile adds a plain (non-rotating) file appender.
 // The file is created if it does not exist; logs are appended if it does.
 // The parent directory is created automatically.
-//
-//	mlog.New(mlog.WithFile("./app.log", "text"))
-//	mlog.New(mlog.WithFile("./app.log", "json"))
+// Bydefault Formatting is text.
+//  
+//  //text formatting
+//	mlog.New(mlog.WithFile("./app.log"))
+//	mlog.New(mlog.WithFile("./app.log"))
+// 
+//  //Json formatting
+//  mlog.New(mlog.WithFile("./app.log"),mlog.WithJson())
 //
 // For long-running services, prefer WithRotatingFile so the file does
 // not grow unbounded.
-func WithFile(path, formatter string) Option {
+func WithFile(path string) Option {
 	return func(o *config.Options) {
 		o.Appenders = replaceSeededConsole(o.Appenders,
-			config.AppenderOption{Type: "file", Path: path, Formatter: formatter},
+			config.AppenderOption{Type: "file", Path: path, Formatter: "text"},
 		)
 	}
 }
@@ -82,25 +87,26 @@ func WithFile(path, formatter string) Option {
 //
 //   - maxSizeMB  — rotate when the file exceeds this size in megabytes
 //   - maxAgeDays — delete rotated files older than this many days (0 = keep forever)
+//   - maxBackups — total how may backup files is to be kept
 //
 // The parent directory is created automatically.
 // Format defaults to "text". Chain WithJSON() immediately after to get JSON:
 //
 //	// text rotation
 //	mlog.New(
-//	    mlog.WithRotatingFile("./logs/app.log", 100, 14),
+//	    mlog.WithRotatingFile("./logs/app.log", 100, 14, 5),
 //	)
 //
 //	// json rotation
 //	mlog.New(
-//	    mlog.WithRotatingFile("./logs/app.log", 100, 14),
+//	    mlog.WithRotatingFile("./logs/app.log", 100, 14, 5),
 //	    mlog.WithJSON(),
 //	)
 //
 //	// console AND rotating file together
 //	mlog.New(
 //	    mlog.WithConsole("text"),
-//	    mlog.WithRotatingFile("./logs/app.log", 100, 14),
+//	    mlog.WithRotatingFile("./logs/app.log", 100, 14, 5),
 //	)
 func WithRotatingFile(path string, maxSizeMB, maxAgeDays,maxBackups int) Option {
 	return func(o *config.Options) {
@@ -195,6 +201,22 @@ func WithFlushInterval(ms int) Option {
 	return func(o *config.Options) {
 		o.FlushInterval = ms
 	}
+}
+
+// WithSkip sets the number of stack frames to skip when identifying the caller.
+//
+// This is used to adjust the file and line number reporting when the logger 
+// is wrapped by other functions or middleware. Increasing this value 
+// moves the "caller" further up the call stack.
+//
+// Default: 4
+//
+//  mlog.New(mlog.WithSkip(4))    // standard behavior for direct calls
+//  mlog.New(mlog.WithSkip(5))    // use if mlog is wrapped in one helper function
+func WithSkip(skip int) Option {
+    return func(o *config.Options) {
+        o.MinSkip = skip
+    }
 }
 
 

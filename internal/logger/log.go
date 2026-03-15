@@ -22,15 +22,17 @@ type Logger struct {
 	flushInterval time.Duration
 	shutdownOnce sync.Once
 	droppedCnt int64
+	skip int
 }
 
 //constructor based logger
-func NewLogger(buffer int,minLevel logmsg.LogLevel,batchSize int,flushInterval time.Duration) *Logger{
+func NewLogger(buffer int,minLevel logmsg.LogLevel,batchSize int,minSkip int,flushInterval time.Duration) *Logger{
 	mp:=make(map[string]handler.LogHandler)
 	mp["debug"]=handler.NewDebugHandler()
 	mp["info"]=handler.NewInfoHandler()
 	mp["warning"]=handler.NewWarningHandler()
 	mp["error"]=handler.NewErrorHandler()
+	mp["fatal"]=handler.NewFatalHandler()
 	minHead,ok:=mp[minLevel.ToStr()]
 	if !ok{
 		minHead=mp["debug"]
@@ -43,11 +45,13 @@ func NewLogger(buffer int,minLevel logmsg.LogLevel,batchSize int,flushInterval t
 		minLevel: minLevel,
 		batchSize: batchSize,
 		flushInterval: flushInterval,
+		skip: minSkip,
 	}
 	instance.handlers["debug"].SetNext(instance.handlers["info"])
 	instance.handlers["info"].SetNext(instance.handlers["warning"])
 	instance.handlers["warning"].SetNext(instance.handlers["error"])
-	instance.handlers["error"].SetNext(nil)
+	instance.handlers["error"].SetNext(instance.handlers["fatal"])
+	instance.handlers["fatal"].SetNext(nil)
 	instance.wg.Add(1)
 	go instance.batchWorker()
 	return instance
@@ -128,7 +132,7 @@ func (l *Logger) log(level logmsg.LogLevel,msg string,fields []logmsg.Field){
 	if level<l.minLevel{
 		return
 	}
-	m:=logmsg.NewLogMsg(level,msg,fields,3)
+	m:=logmsg.NewLogMsg(level,msg,fields,l.skip)
 	select{
 	case <-l.done:
 		//ignore silently if shutdown not panic
@@ -141,20 +145,24 @@ func (l *Logger) log(level logmsg.LogLevel,msg string,fields []logmsg.Field){
 	
 }
 
-func (l *Logger) Debug(msg string,fields ...logmsg.Field){
+func (l *Logger) Debug(msg string,fields []logmsg.Field){
 	l.log(logmsg.DEBUG,msg,fields)
 }
 
-func (l *Logger) Info(msg string, fields ...logmsg.Field) {
+func (l *Logger) Info(msg string, fields []logmsg.Field) {
 	l.log(logmsg.INFO, msg, fields)
 }
 
-func (l *Logger) Warning(msg string, fields ...logmsg.Field) {
+func (l *Logger) Warning(msg string, fields []logmsg.Field) {
 	l.log(logmsg.WARNING, msg, fields)
 }
 
-func (l *Logger) Error(msg string, fields ...logmsg.Field) {
+func (l *Logger) Error(msg string, fields []logmsg.Field) {
 	l.log(logmsg.ERROR, msg, fields)
+}
+
+func (l *Logger) Fatal(msg string, fields []logmsg.Field){
+	l.log(logmsg.FATAL,msg,fields)
 }
 func (l *Logger) GetDroppedLogsCnt() int64{
 	return atomic.LoadInt64(&l.droppedCnt)

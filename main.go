@@ -1,36 +1,33 @@
 package main
 
 import (
-	"sync"
-
 	"github.com/ageniuscoder/mlog/mlog"
 )
 
 func main() {
-	system,closers,err:=mlog.Run("./logger.json")
-	if err!=nil{
-		panic(err)
-	}
+	// system,stop:=mlog.Default()
+	// defer stop()
 
-	defer mlog.ShutDown(closers,system)
+
+	system,stop:=mlog.New(
+		mlog.WithLevel("debug"),
+		mlog.WithJSON(),
+		mlog.WithFile("./app.log"),
+		mlog.WithJSON(),
+		mlog.WithRotatingFile("./logs/app.log",100,4,5),
+		mlog.WithSkip(4),
+	)
+	defer stop()
+
+
+	// system,stop,err:=mlog.FromFile("./logger.json")
+	// if err!=nil{
+	// 	panic(err)
+	// }
+	// defer stop()
 
 
 	// ---- TEST LOGGING WITH STRUCTURED FIELDS ----
-	var wg sync.WaitGroup
-	for i:=0;i<10;i++{
-		wg.Add(1)
-		go func(id int){
-			defer wg.Done()
-			for j:=0;j<10000;j++{
-				system.Error(
-					"worker log",
-					mlog.M("worker",id),
-					mlog.M("iteration",j),
-				)
-			}
-		}(i)
-	}
-
 
 	system.Debug(
 		"Debug message: application starting",
@@ -89,7 +86,5 @@ func main() {
 		mlog.M("retrying", true),
 	)
 
-
-	wg.Wait()
 
 }
