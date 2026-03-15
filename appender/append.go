@@ -2,11 +2,12 @@ package appender
 
 import (
 	"fmt"
-	"logger/formatter"
-	"logger/logmsg"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/ageniuscoder/mlog/formatter"
+	"github.com/ageniuscoder/mlog/logmsg"
 )
 
 type LogAppender interface{

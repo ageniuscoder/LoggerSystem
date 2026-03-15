@@ -2,9 +2,9 @@ package appender
 
 import (
 	"bytes"
-	"logger/formatter"
-	"logger/logmsg"
 
+	"github.com/ageniuscoder/mlog/formatter"
+	"github.com/ageniuscoder/mlog/logmsg"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 

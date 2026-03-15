@@ -2,13 +2,15 @@ package config
 
 import (
 	"fmt"
-	"logger/appender"
-	"logger/formatter"
-	logs "logger/logger"
-	"logger/logmsg"
+
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/ageniuscoder/mlog/appender"
+	"github.com/ageniuscoder/mlog/formatter"
+	logs "github.com/ageniuscoder/mlog/logger"
+	"github.com/ageniuscoder/mlog/logmsg"
 )
 
 func Build(cfg *LoggerConfig) (*logs.Logger,[]func() error,error){

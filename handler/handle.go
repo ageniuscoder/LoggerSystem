@@ -2,10 +2,12 @@ package handler
 
 import (
 	"fmt"
-	"logger/appender"
-	"logger/logmsg"
+
 	"os"
 	"sync"
+
+	"github.com/ageniuscoder/mlog/appender"
+	"github.com/ageniuscoder/mlog/logmsg"
 )
 
 type LogHandler interface{

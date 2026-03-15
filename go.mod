@@ -1,4 +1,4 @@
-module logger
+module github.com/ageniuscoder/mlog
 
 go 1.25.0
 

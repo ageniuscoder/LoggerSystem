@@ -1,9 +1,10 @@
 package formatter
 
 import (
-	"logger/logmsg"
 	"strconv"
 	"sync"
+
+	"github.com/ageniuscoder/mlog/logmsg"
 )
 
 type LogFormatter interface {

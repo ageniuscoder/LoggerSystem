@@ -1,8 +1,9 @@
 package main
 
 import (
-	mlog "logger/start"
 	"sync"
+
+	mlog "github.com/ageniuscoder/mlog/start"
 )
 
 func main() {

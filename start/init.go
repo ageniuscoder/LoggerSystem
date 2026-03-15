@@ -2,9 +2,10 @@ package mlog
 
 import (
 	"fmt"
-	"logger/config"
-	logs "logger/logger"
-	"logger/logmsg"
+
+	"github.com/ageniuscoder/mlog/config"
+	logs "github.com/ageniuscoder/mlog/logger"
+	"github.com/ageniuscoder/mlog/logmsg"
 )
 
 func Run(path string) (*logs.Logger,[]func() error,error) {
