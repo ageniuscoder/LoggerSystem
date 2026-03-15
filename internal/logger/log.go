@@ -2,15 +2,14 @@ package logs
 
 import (
 	"fmt"
-
 	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/ageniuscoder/mlog/appender"
-	"github.com/ageniuscoder/mlog/handler"
-	"github.com/ageniuscoder/mlog/logmsg"
+	"github.com/ageniuscoder/mlog/internal/appender"
+	"github.com/ageniuscoder/mlog/internal/handler"
+	"github.com/ageniuscoder/mlog/internal/logmsg"
 )
 
 //singleton

@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ageniuscoder/mlog/logmsg"
+	"github.com/ageniuscoder/mlog/internal/logmsg"
 )
 
 type LogFormatter interface {

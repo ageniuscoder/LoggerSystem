@@ -6,8 +6,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ageniuscoder/mlog/appender"
-	"github.com/ageniuscoder/mlog/logmsg"
+	"github.com/ageniuscoder/mlog/internal/appender"
+	"github.com/ageniuscoder/mlog/internal/logmsg"
 )
 
 type LogHandler interface{

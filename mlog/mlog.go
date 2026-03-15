@@ -3,9 +3,9 @@ package mlog
 import (
 	"fmt"
 
-	"github.com/ageniuscoder/mlog/config"
-	logs "github.com/ageniuscoder/mlog/logger"
-	"github.com/ageniuscoder/mlog/logmsg"
+	"github.com/ageniuscoder/mlog/internal/config"
+	logs "github.com/ageniuscoder/mlog/internal/logger"
+	"github.com/ageniuscoder/mlog/internal/logmsg"
 )
 
 func Run(path string) (*logs.Logger,[]func() error,error) {
