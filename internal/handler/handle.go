@@ -10,7 +10,8 @@ import (
 	"github.com/ageniuscoder/mlog/internal/logmsg"
 )
 
-type LogHandler interface{
+// observer design pattern is used with chain of responsiblity
+type LogHandler interface {
 	HandleLog(msg *logmsg.LogMsg)
 	HandleBatch(msgs []*logmsg.LogMsg)
 	SetNext(next LogHandler)
@@ -19,37 +20,37 @@ type LogHandler interface{
 	// Forward(msg *logmsg.LogMsg)
 }
 
-type BaseHandler struct{
-	mu sync.RWMutex
-	next LogHandler
+type BaseHandler struct {
+	mu        sync.RWMutex
+	next      LogHandler
 	appenders []appender.LogAppender
 }
 
-func (bh *BaseHandler) SetNext(next LogHandler){
+func (bh *BaseHandler) SetNext(next LogHandler) {
 	bh.mu.Lock()
 	defer bh.mu.Unlock()
-	bh.next=next
+	bh.next = next
 }
 
-func (bh *BaseHandler) AddAppender(appender appender.LogAppender){
+func (bh *BaseHandler) AddAppender(appender appender.LogAppender) {
 	bh.mu.Lock()
 	defer bh.mu.Unlock()
-	bh.appenders=append(bh.appenders, appender)
+	bh.appenders = append(bh.appenders, appender)
 }
 
 // Notify fans out to all appenders concurrently.
 // The slice is copied under RLock so the lock isn't held during I/O.
-func (bh *BaseHandler) Notify(msg *logmsg.LogMsg)  {  //imp
+func (bh *BaseHandler) Notify(msg *logmsg.LogMsg) { //imp
 	bh.mu.RLock()
 	// Copy slice under read lock to avoid holding lock during I/O
 	appenders := make([]appender.LogAppender, len(bh.appenders))
 	copy(appenders, bh.appenders)
 	bh.mu.RUnlock()
 
-	for _,ap:=range appenders{   
-		err:=ap.AppendMsg(msg)
-		if err!=nil{
-			fmt.Fprintf(os.Stderr, "logger: appender error: %v\n", err)   //fixed here
+	for _, ap := range appenders {
+		err := ap.AppendMsg(msg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "logger: appender error: %v\n", err)
 		}
 	}
 }
@@ -60,171 +61,171 @@ func (bh *BaseHandler) NotifyBatch(msgs []*logmsg.LogMsg) {
 	copy(appenders, bh.appenders)
 	bh.mu.RUnlock()
 
-	for _,ap:=range appenders{
-		if err:=ap.AppendBatch(msgs); err!=nil{
-			fmt.Fprintf(os.Stderr,"logger: appender error: %v\n", err)
+	for _, ap := range appenders {
+		if err := ap.AppendBatch(msgs); err != nil {
+			fmt.Fprintf(os.Stderr, "logger: appender error: %v\n", err)
 		}
 	}
 }
+
 // Forward reads next under RLock into a local variable, then calls it.
 // This avoids reading bh.next a second time outside the lock.
-func (bh *BaseHandler) Forward(msg *logmsg.LogMsg){
-	bh.mu.RLock()  //same logic here as above
+func (bh *BaseHandler) Forward(msg *logmsg.LogMsg) {
+	bh.mu.RLock() //same logic here as above
 	next := bh.next
 	bh.mu.RUnlock()
 
-	if next!=nil{
+	if next != nil {
 		next.HandleLog(msg)
 	}
 }
 
-func (bh *BaseHandler) ForwardBatch(msgs []*logmsg.LogMsg){
-	bh.mu.RLock()  
+func (bh *BaseHandler) ForwardBatch(msgs []*logmsg.LogMsg) {
+	bh.mu.RLock()
 	next := bh.next
 	bh.mu.RUnlock()
 
-	if next!=nil{
+	if next != nil {
 		next.HandleBatch(msgs)
 	}
 }
 
-func (bh *BaseHandler) getMineAndOtherBatch(level logmsg.LogLevel,msgs []*logmsg.LogMsg) ([]*logmsg.LogMsg,[]*logmsg.LogMsg){
-	mine:=make([]*logmsg.LogMsg,0,len(msgs))
-	other:=make([]*logmsg.LogMsg,0,len(msgs))
+func (bh *BaseHandler) getMineAndOtherBatch(level logmsg.LogLevel, msgs []*logmsg.LogMsg) ([]*logmsg.LogMsg, []*logmsg.LogMsg) {
+	mine := make([]*logmsg.LogMsg, 0, len(msgs))
+	other := make([]*logmsg.LogMsg, 0, len(msgs))
 
-	for _,msg:=range msgs{
-		if msg.Level==level{
+	for _, msg := range msgs {
+		if msg.Level == level {
 			mine = append(mine, msg)
-		}else{
+		} else {
 			other = append(other, msg)
 		}
 	}
 
-	return mine,other
+	return mine, other
 
 }
 
-type DebugHandler struct{
+type DebugHandler struct {
 	BaseHandler
 }
 
-func NewDebugHandler() *DebugHandler{
+func NewDebugHandler() *DebugHandler {
 	return &DebugHandler{}
 }
 
-func (dh *DebugHandler) HandleLog(msg *logmsg.LogMsg){
-	if msg.Level==logmsg.DEBUG{
+func (dh *DebugHandler) HandleLog(msg *logmsg.LogMsg) {
+	if msg.Level == logmsg.DEBUG {
 		dh.Notify(msg)
 		return
 	}
 	dh.Forward(msg)
 }
 
-func (dh *DebugHandler) HandleBatch(msgs []*logmsg.LogMsg){
-	mine,other:=dh.getMineAndOtherBatch(logmsg.DEBUG,msgs)
+func (dh *DebugHandler) HandleBatch(msgs []*logmsg.LogMsg) {
+	mine, other := dh.getMineAndOtherBatch(logmsg.DEBUG, msgs)
 
-	if len(mine)>0{
+	if len(mine) > 0 {
 		dh.NotifyBatch(mine)
 	}
 	dh.ForwardBatch(other)
 }
 
-type InfoHandler struct{
+type InfoHandler struct {
 	BaseHandler
 }
 
-func NewInfoHandler() *InfoHandler{
+func NewInfoHandler() *InfoHandler {
 	return &InfoHandler{}
 }
 
-func (ih *InfoHandler) HandleLog(msg *logmsg.LogMsg){
-	if msg.Level==logmsg.INFO{
+func (ih *InfoHandler) HandleLog(msg *logmsg.LogMsg) {
+	if msg.Level == logmsg.INFO {
 		ih.Notify(msg)
 		return
 	}
 	ih.Forward(msg)
 }
 
-func (ih *InfoHandler) HandleBatch(msgs []*logmsg.LogMsg){
-	mine,other:=ih.getMineAndOtherBatch(logmsg.INFO,msgs)
+func (ih *InfoHandler) HandleBatch(msgs []*logmsg.LogMsg) {
+	mine, other := ih.getMineAndOtherBatch(logmsg.INFO, msgs)
 
-	if len(mine)>0{
+	if len(mine) > 0 {
 		ih.NotifyBatch(mine)
 	}
 	ih.ForwardBatch(other)
 }
 
-type WarningHandler struct{
+type WarningHandler struct {
 	BaseHandler
 }
 
-func NewWarningHandler() *WarningHandler{
+func NewWarningHandler() *WarningHandler {
 	return &WarningHandler{}
 }
 
-func (wh *WarningHandler) HandleLog(msg *logmsg.LogMsg){
-	if msg.Level==logmsg.WARNING{
+func (wh *WarningHandler) HandleLog(msg *logmsg.LogMsg) {
+	if msg.Level == logmsg.WARNING {
 		wh.Notify(msg)
 		return
 	}
 	wh.Forward(msg)
 }
 
-func (wh *WarningHandler) HandleBatch(msgs []*logmsg.LogMsg){
-	mine,other:=wh.getMineAndOtherBatch(logmsg.WARNING,msgs)
+func (wh *WarningHandler) HandleBatch(msgs []*logmsg.LogMsg) {
+	mine, other := wh.getMineAndOtherBatch(logmsg.WARNING, msgs)
 
-	if len(mine)>0{
+	if len(mine) > 0 {
 		wh.NotifyBatch(mine)
 	}
 	wh.ForwardBatch(other)
 }
 
-type ErrorHandler struct{
+type ErrorHandler struct {
 	BaseHandler
 }
 
-func NewErrorHandler() *ErrorHandler{
+func NewErrorHandler() *ErrorHandler {
 	return &ErrorHandler{}
 }
 
-func (eh *ErrorHandler) HandleLog(msg *logmsg.LogMsg){
-	if msg.Level==logmsg.ERROR{
+func (eh *ErrorHandler) HandleLog(msg *logmsg.LogMsg) {
+	if msg.Level == logmsg.ERROR {
 		eh.Notify(msg)
 		return
 	}
 	eh.Forward(msg)
 }
 
-func (eh *ErrorHandler) HandleBatch(msgs []*logmsg.LogMsg){
-	mine,other:=eh.getMineAndOtherBatch(logmsg.ERROR,msgs)
+func (eh *ErrorHandler) HandleBatch(msgs []*logmsg.LogMsg) {
+	mine, other := eh.getMineAndOtherBatch(logmsg.ERROR, msgs)
 
-	if len(mine)>0{
+	if len(mine) > 0 {
 		eh.NotifyBatch(mine)
 	}
 	eh.ForwardBatch(other)
 }
 
-
-type FatalHandler struct{
+type FatalHandler struct {
 	BaseHandler
 }
 
-func NewFatalHandler() *FatalHandler{
+func NewFatalHandler() *FatalHandler {
 	return &FatalHandler{}
 }
 
-func (fh *FatalHandler) HandleLog(msg *logmsg.LogMsg){
-	if msg.Level==logmsg.FATAL{
+func (fh *FatalHandler) HandleLog(msg *logmsg.LogMsg) {
+	if msg.Level == logmsg.FATAL {
 		fh.Notify(msg)
 		return
 	}
 	fh.Forward(msg)
 }
 
-func (fh *FatalHandler) HandleBatch(msgs []*logmsg.LogMsg){
-	mine,other:=fh.getMineAndOtherBatch(logmsg.FATAL,msgs)
+func (fh *FatalHandler) HandleBatch(msgs []*logmsg.LogMsg) {
+	mine, other := fh.getMineAndOtherBatch(logmsg.FATAL, msgs)
 
-	if len(mine)>0{
+	if len(mine) > 0 {
 		fh.NotifyBatch(mine)
 	}
 	fh.ForwardBatch(other)
