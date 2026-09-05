@@ -34,3 +34,5 @@ go.work.sum
 #log msg
 logs/
 *.log
+
+INTERVIEW_PREP.md
