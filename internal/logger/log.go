@@ -10,42 +10,41 @@ import (
 	"github.com/ageniuscoder/mlog/internal/logmsg"
 )
 
-//singleton
 type Logger struct {
-	handlers map[string]handler.LogHandler
-	head handler.LogHandler
-	logbuffer chan *logmsg.LogMsg
-	wg sync.WaitGroup
-	done chan struct{}
-	minLevel logmsg.LogLevel
-	batchSize int
+	handlers      map[string]handler.LogHandler
+	head          handler.LogHandler
+	logbuffer     chan *logmsg.LogMsg
+	wg            sync.WaitGroup
+	done          chan struct{}
+	minLevel      logmsg.LogLevel
+	batchSize     int
 	flushInterval time.Duration
-	shutdownOnce sync.Once
-	droppedCnt int64
-	skip int
+	shutdownOnce  sync.Once
+	droppedCnt    int64
+	skip          int
 }
 
-//constructor based logger
-func NewLogger(buffer int,minLevel logmsg.LogLevel,batchSize int,minSkip int,flushInterval time.Duration) *Logger{
-	mp:=make(map[string]handler.LogHandler)
-	mp["debug"]=handler.NewDebugHandler()
-	mp["info"]=handler.NewInfoHandler()
-	mp["warning"]=handler.NewWarningHandler()
-	mp["error"]=handler.NewErrorHandler()
-	mp["fatal"]=handler.NewFatalHandler()
-	minHead,ok:=mp[minLevel.ToStr()]
-	if !ok{
-		minHead=mp["debug"]
+// constructor based logger
+func NewLogger(buffer int, minLevel logmsg.LogLevel, batchSize int, minSkip int, flushInterval time.Duration) *Logger {
+	mp := make(map[string]handler.LogHandler)
+	mp["debug"] = handler.NewDebugHandler()
+	mp["info"] = handler.NewInfoHandler()
+	mp["warning"] = handler.NewWarningHandler()
+	mp["error"] = handler.NewErrorHandler()
+	mp["fatal"] = handler.NewFatalHandler()
+	minHead, ok := mp[minLevel.ToStr()]
+	if !ok {
+		minHead = mp["debug"]
 	}
-	instance:=&Logger{
-		handlers: mp,
-		logbuffer: make(chan *logmsg.LogMsg,buffer),
-		done: make(chan struct{}),
-		head: minHead,
-		minLevel: minLevel,
-		batchSize: batchSize,
+	instance := &Logger{
+		handlers:      mp,
+		logbuffer:     make(chan *logmsg.LogMsg, buffer),
+		done:          make(chan struct{}),
+		head:          minHead,
+		minLevel:      minLevel,
+		batchSize:     batchSize,
 		flushInterval: flushInterval,
-		skip: minSkip,
+		skip:          minSkip,
 	}
 	instance.handlers["debug"].SetNext(instance.handlers["info"])
 	instance.handlers["info"].SetNext(instance.handlers["warning"])
@@ -58,95 +57,95 @@ func NewLogger(buffer int,minLevel logmsg.LogLevel,batchSize int,minSkip int,flu
 }
 
 func (l *Logger) flush(batch []*logmsg.LogMsg) {
-    l.head.HandleBatch(batch)      // all appenders MUST be done here
-    for _, m := range batch {
-        logmsg.PutMsgPool(m)       // only safe because HandleBatch is synchronous
-    }
-    // Contract: appenders must not retain *LogMsg pointers after AppendBatch returns
+	l.head.HandleBatch(batch) // all appenders MUST be done here
+	for _, m := range batch {
+		logmsg.PutMsgPool(m) // only safe because HandleBatch is synchronous
+	}
+	// Contract: appenders must not retain *LogMsg pointers after AppendBatch returns
 }
+
 // worker is the single background goroutine that drains the channel.
 // Single worker = guaranteed FIFO ordering of all log messages.
-//it logs in batches
-func (l *Logger) batchWorker(){
+// it logs in batches
+func (l *Logger) batchWorker() {
 	defer l.wg.Done()
-	batch:=make([]*logmsg.LogMsg,0,l.batchSize)
-	ticker:=time.NewTicker(l.flushInterval)
+	batch := make([]*logmsg.LogMsg, 0, l.batchSize)
+	ticker := time.NewTicker(l.flushInterval)
 	defer ticker.Stop()
 	// statsTicker:=time.NewTicker(1*time.Second)
 	// defer statsTicker.Stop()
-	for{
+	for {
 		select {
-		case msg:=<-l.logbuffer:
+		case msg := <-l.logbuffer:
 			batch = append(batch, msg)
-			if len(batch)>=l.batchSize {
+			if len(batch) >= l.batchSize {
 				l.flush(batch)
-				batch=batch[:0]
+				batch = batch[:0]
 				ticker.Reset(l.flushInterval)
 			}
 		case <-ticker.C:
-			if len(batch) > 0{
+			if len(batch) > 0 {
 				l.flush(batch)
-				batch=batch[:0]
+				batch = batch[:0]
 			}
 		// case <-statsTicker.C:
 		// 	fmt.Fprintf(os.Stderr,"Dropped logs are: %v \n",l.GetDroppedLogsCnt())
-		case <-l.done:     //logger is shutdown drain the buffer,bcz logbuffer is never closed
-		for{
-			select{
-			case msg:=<-l.logbuffer:
-				batch = append(batch, msg)
-			default:
-				if len(batch)>0{
-					l.flush(batch)
-					batch=batch[:0]
+		case <-l.done: //logger is shutdown drain the buffer,bcz logbuffer is never closed
+			for {
+				select {
+				case msg := <-l.logbuffer:
+					batch = append(batch, msg)
+				default:
+					if len(batch) > 0 {
+						l.flush(batch)
+						batch = batch[:0]
+					}
+					return
 				}
-				return
 			}
 		}
-		}
-	
+
 	}
 }
 
-
-func (l *Logger) Shutdown(){  
+func (l *Logger) Shutdown() {
 	l.shutdownOnce.Do(func() {
-		close(l.done)   // signals: reject new sends
+		close(l.done) // signals: reject new sends
 		l.wg.Wait()
 	})
 }
 
-func (l *Logger) AddAppender(level string,appender appender.LogAppender){
-	if level==""{        //add same appender to all handlers
-		for _,h:=range l.handlers{
+func (l *Logger) AddAppender(level string, appender appender.LogAppender) {
+	if level == "" { //add same appender to all handlers
+		for _, h := range l.handlers {
 			h.AddAppender(appender)
 		}
 		return
 	}
-	if ap,ok:=l.handlers[level]; ok{
+	if ap, ok := l.handlers[level]; ok {
 		ap.AddAppender(appender)
 	}
 }
 
-func (l *Logger) log(level logmsg.LogLevel,msg string,fields []logmsg.Field){
-	if level<l.minLevel{
+func (l *Logger) log(level logmsg.LogLevel, msg string, fields []logmsg.Field) {
+	if level < l.minLevel {
 		return
 	}
-	m:=logmsg.NewLogMsg(level,msg,fields,l.skip)
-	select{
+	m := logmsg.NewLogMsg(level, msg, fields, l.skip)
+	select {
 	case <-l.done:
 		//ignore silently if shutdown not panic
-	case l.logbuffer<-m:
+	case l.logbuffer <- m:
 	default:
 		//non blocking and keep track of dropped logs
-		atomic.AddInt64(&l.droppedCnt,1)
+		atomic.AddInt64(&l.droppedCnt, 1)
 		logmsg.PutMsgPool(m)
 	}
-	
+
 }
 
-func (l *Logger) Debug(msg string,fields []logmsg.Field){
-	l.log(logmsg.DEBUG,msg,fields)
+func (l *Logger) Debug(msg string, fields []logmsg.Field) {
+	l.log(logmsg.DEBUG, msg, fields)
 }
 
 func (l *Logger) Info(msg string, fields []logmsg.Field) {
@@ -161,12 +160,9 @@ func (l *Logger) Error(msg string, fields []logmsg.Field) {
 	l.log(logmsg.ERROR, msg, fields)
 }
 
-func (l *Logger) Fatal(msg string, fields []logmsg.Field){
-	l.log(logmsg.FATAL,msg,fields)
+func (l *Logger) Fatal(msg string, fields []logmsg.Field) {
+	l.log(logmsg.FATAL, msg, fields)
 }
-func (l *Logger) GetDroppedLogsCnt() int64{
+func (l *Logger) GetDroppedLogsCnt() int64 {
 	return atomic.LoadInt64(&l.droppedCnt)
 }
-
-
-
