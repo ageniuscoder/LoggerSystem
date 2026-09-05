@@ -23,8 +23,9 @@ func ParseLevel(s string) (LogLevel, bool) {
 		return ERROR, true
 	case "fatal":
 		return FATAL, true
+	default:
+		return 0, false
 	}
-	return 0, false
 }
 func (l LogLevel) ToStr() string {
 	switch l {
@@ -38,6 +39,7 @@ func (l LogLevel) ToStr() string {
 		return "error"
 	case FATAL:
 		return "fatal"
+	default:
+		return "unknown"
 	}
-	return "unknown"
 }

@@ -71,14 +71,14 @@ func AnyField(key string, val any) Field {
 	return Field{
 		Key:    key,
 		Type:   AnyType,
-		StrVal: fmt.Sprintf("%+v",val),
+		StrVal: fmt.Sprintf("%+v", val),
 	}
 }
 
 //short hand helper detect type auto
 
-func M(key string,val any) Field{
-	switch v:=val.(type){  //type switch,, val.(type) can only be used with switch
+func M(key string, val any) Field {
+	switch v := val.(type) { //type switch,, val.(type) can only be used with switch
 	case string:
 		return StringField(key, v)
 	case int:
@@ -96,8 +96,9 @@ func M(key string,val any) Field{
 	}
 }
 
+// for zero-alloc-formatting of text msg
 
-func (f Field) AppendTextValue(buf []byte) []byte {  //for performance
+func (f Field) AppendTextValue(buf []byte) []byte {
 	switch f.Type {
 	case StringType, ErrorType, AnyType:
 		buf = append(buf, '"')
@@ -134,7 +135,7 @@ func AppendJSONString(buf []byte, s string) []byte {
 		case '\t':
 			buf = append(buf, '\\', 't')
 		default:
-			if c < 0x20 {  // ADD this — escape all control chars
+			if c < 0x20 { // ADD this — escape all control chars
 				buf = append(buf, '\\', 'u', '0', '0')
 				buf = append(buf, "0123456789abcdef"[c>>4])
 				buf = append(buf, "0123456789abcdef"[c&0xf])
@@ -145,7 +146,6 @@ func AppendJSONString(buf []byte, s string) []byte {
 	}
 	return append(buf, '"')
 }
-
 
 // AppendJSON writes the field as "key":value directly into a byte buffer.
 // No allocation — the formatter calls this for every field.
